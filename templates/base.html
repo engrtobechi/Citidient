@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Cidient App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.4/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    {% include "navbar.html"%}
+    <div class="container">
+        {% block body %}
+        {% endblock %}
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
+        integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+        crossorigin="anonymous"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+    <script>
+        let stateSelect = document.querySelector('#state');
+        let lgaSelect = document.querySelector('#lga');
+        let wardSelect = document.querySelector('#ward');
+        let puSelect = document.querySelector('#pu');
+
+        stateSelect.addEventListener('change', () => {
+            let stateId = stateSelect.value;
+            let xhr = new XMLHttpRequest();
+
+            xhr.open('GET', `lga/${stateId}`);
+            xhr.onload = () => {
+                let jsonData = JSON.parse(xhr.responseText);
+                let lgasJson = jsonData.lgas_json;
+
+                lgaSelect.innerHTML = '';
+                wardSelect.innerHTML = '<option value="">Select Ward</option>'; // reset ward selector
+
+                for (let lga of lgasJson) {
+                    let option = document.createElement('option');
+                    option.innerHTML = lga.name;
+                    option.value = lga.id;
+                    lgaSelect.appendChild(option);
+                }
+            };
+            xhr.send();
+        });
+
+        lgaSelect.addEventListener('change', () => {
+            let lgaId = lgaSelect.value;
+            let xhr = new XMLHttpRequest();
+
+            xhr.open('GET', `ward/${lgaId}`);
+            xhr.onload = () => {
+                let jsonData = JSON.parse(xhr.responseText);
+                let wardsJson = jsonData.wards_json;
+
+                wardSelect.innerHTML = '<option value="">Select Ward</option>'; // reset ward selector
+
+                for (let ward of wardsJson) {
+                    let option = document.createElement('option');
+                    option.innerHTML = ward.name;
+                    option.value = ward.id;
+                    wardSelect.appendChild(option);
+                }
+            };
+            xhr.send();
+        });
+
+        wardSelect.addEventListener('change', () => {
+            let wardId = wardSelect.value;
+            let xhr = new XMLHttpRequest();
+
+            xhr.open('GET', `pu/${wardId}`);
+            xhr.onload = () => {
+                let jsonData = JSON.parse(xhr.responseText);
+                let pusJson = jsonData.pus_json;
+
+                puSelect.innerHTML = '<option value="">Select PU</option>'; // reset ward selector
+
+                for (let pu of pusJson) {
+                    let option = document.createElement('option');
+                    option.innerHTML = pu.name;
+                    option.value = pu.id;
+                    puSelect.appendChild(option);
+                }
+            };
+            xhr.send();
+        });
+
+    </script>
+</body>
+
+</html>
