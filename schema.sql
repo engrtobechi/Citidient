@@ -4,44 +4,44 @@ CREATE TABLE states (
     state_name VARCHAR(50)
 );
 
-INSERT INTO states (id, state_name) VALUES
-(1, 'Abia'),
-(2, 'Adamawa'),
-(3, 'Anambra'),
-(4, 'Akwa Ibom'),
-(5, 'Bauchi'),
-(6, 'Bayelsa'),
-(7, 'Benue'),
-(8, 'Borno'),
-(9, 'Cross River'),
-(10, 'Delta'),
-(11, 'Ebonyi'),
-(12, 'Enugu'),
-(13, 'Edo'),
-(14, 'Ekiti'),
-(15, 'Gombe'),
-(16, 'Imo'),
-(17, 'Jigawa'),
-(18, 'Kaduna'),
-(19, 'Kano'),
-(20, 'Katsina'),
-(21, 'Kebbi'),
-(22, 'Kogi'),
-(23, 'Kwara'),
-(24, 'Lagos'),
-(25, 'Nasarawa'),
-(26, 'Niger'),
-(27, 'Ogun'),
-(28, 'Ondo'),
-(29, 'Osun'),
-(30, 'Oyo'),
-(31, 'Plateau'),
-(32, 'Rivers'),
-(33, 'Sokoto'),
-(34, 'Taraba'),
-(35, 'Yobe'),
-(36, 'Zamfara'),
-(37, 'FCT Abuja');
+INSERT INTO states(id,state_name) VALUES (1,'Abia');
+INSERT INTO states(id,state_name) VALUES (2,'Adamawa');
+INSERT INTO states(id,state_name) VALUES (3,'Akwa Ibom');
+INSERT INTO states(id,state_name) VALUES (4,'Anambra');
+INSERT INTO states(id,state_name) VALUES (5,'Bauchi');
+INSERT INTO states(id,state_name) VALUES (6,'Bayelsa');
+INSERT INTO states(id,state_name) VALUES (7,'Benue');
+INSERT INTO states(id,state_name) VALUES (8,'Borno');
+INSERT INTO states(id,state_name) VALUES (9,'Cross River');
+INSERT INTO states(id,state_name) VALUES (10,'Delta');
+INSERT INTO states(id,state_name) VALUES (11,'Ebonyi');
+INSERT INTO states(id,state_name) VALUES (12,'Edo');
+INSERT INTO states(id,state_name) VALUES (13,'Ekiti');
+INSERT INTO states(id,state_name) VALUES (14,'Enugu');
+INSERT INTO states(id,state_name) VALUES (15,'FCT Abuja');
+INSERT INTO states(id,state_name) VALUES (16,'Gombe');
+INSERT INTO states(id,state_name) VALUES (17,'Imo');
+INSERT INTO states(id,state_name) VALUES (18,'Jigawa');
+INSERT INTO states(id,state_name) VALUES (19,'Kaduna');
+INSERT INTO states(id,state_name) VALUES (20,'Kano');
+INSERT INTO states(id,state_name) VALUES (21,'Katsina');
+INSERT INTO states(id,state_name) VALUES (22,'Kebbi');
+INSERT INTO states(id,state_name) VALUES (23,'Kogi');
+INSERT INTO states(id,state_name) VALUES (24,'Kwara');
+INSERT INTO states(id,state_name) VALUES (25,'Lagos');
+INSERT INTO states(id,state_name) VALUES (26,'Nasarawa');
+INSERT INTO states(id,state_name) VALUES (27,'Niger');
+INSERT INTO states(id,state_name) VALUES (28,'Ogun');
+INSERT INTO states(id,state_name) VALUES (29,'Ondo');
+INSERT INTO states(id,state_name) VALUES (30,'Osun');
+INSERT INTO states(id,state_name) VALUES (31,'Oyo');
+INSERT INTO states(id,state_name) VALUES (32,'Plateau');
+INSERT INTO states(id,state_name) VALUES (33,'Rivers');
+INSERT INTO states(id,state_name) VALUES (34,'Sokoto');
+INSERT INTO states(id,state_name) VALUES (35,'Taraba');
+INSERT INTO states(id,state_name) VALUES (36,'Yobe');
+INSERT INTO states(id,state_name) VALUES (37,'Zamfara');
+
 
 
 CREATE TABLE lgas (
