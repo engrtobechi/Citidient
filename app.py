@@ -1,9 +1,10 @@
 import os
 import json
+import random
 import urllib.request
 import pypdfium2 as pdfium
 from flask_mysqldb import MySQL,MySQLdb
-from flask import Flask, request, json, render_template, redirect, jsonify
+from flask import Flask, request, json, url_for, render_template, redirect, jsonify
 
 app = Flask(__name__)
 app.config["MYSQL_HOST"] = "localhost"
@@ -20,23 +21,44 @@ app.config["SECRET_KEY"] = "add your key here"
 def index():
     if request.method == "POST":
         # Get data from the form
-        state = request.form["state"]
-        lga = request.form["lga"]
-        ward = request.form["ward"]
-        pu_code = request.form["pu_code"]
+        state_id = int(request.form["state"])
+        lga_id = int(request.form["lga"])
+        ward_id = int(request.form["ward"])
+        pu_id = int(request.form["pu"])
+
+        raw_data = fetch_pus(ward_id)
+        json_data = raw_data.json
+        for data in json_data["pus_json"]:
+            if data['id'] == pu_id:
+                filter_data = data
+                break
+
+        # filter_data = next((data for data in json_data["pus_json"] if data["id"] == pu_id), None)
+        state = filter_data["state_name"] if filter_data else None
+        lga = filter_data["lga_name"] if filter_data else None
+        ward = filter_data["ward_name"] if filter_data else None
+        pu_code = filter_data["name"] if filter_data else None
+
+
         registered_voters = request.form["registered_voters"]
         accredited_voters = request.form["accredited_voters"]
         mutilated = request.form["mutilated"]
-        is_result_sheet = request.form["is_result_sheet"]
-        is_stamped = request.form["is_stamped"]
+        if accredited_voters != None:
+            is_result_sheet = True
+        else:
+            is_result_sheet = False
+        if "is_stamped" in request.form:
+            is_stamped = True
+        else:
+            is_stamped = False
         APC = request.form["APC"]
-        APC_agent_signed = request.form["APC_agent_signed"]
+        APC_agent_signed = True if "APC_agent_signed" in request.form else False
         LP = request.form["LP"]
-        LP_agent_signed = request.form["LP_agent_signed"]
+        LP_agent_signed = True if "LP_agent_signed" in request.form else False
         PDP = request.form["PDP"]
-        PDP_agent_signed = request.form["PDP_agent_signed"]
+        PDP_agent_signed = True if "PDP_agent_signed" in request.form else False
         NNPP = request.form["NNPP"]
-        NNPP_agent_signed = request.form["NNPP_agent_signed"]
+        NNPP_agent_signed = True if "NNPP_agent_signed" in request.form else False
         result_file_url = request.form["result_file_url"]
 
         # Insert the data into the "transcribed" table
@@ -46,11 +68,14 @@ def index():
         cursor.execute(query, values)
         mysql.connection.commit()
         message = "Data saved successfully"
+
+        return redirect(url_for("index"))
         
     else: # GET request
         # Get URL and polling unit code from the "wards" table
         cursor = mysql.connection.cursor()
-        query = "SELECT result_file_url, pu_code FROM wards WHERE id = 1" # replace 1 with appropriate ward id
+        ward_id = random.randint(1, 176851)
+        query = f"SELECT result_file_url, pu_code FROM wards WHERE id = {ward_id}" # id is randomly appropriate ward id
         cursor.execute(query)
         row = cursor.fetchone()
         result_file_url = row["result_file_url"]
@@ -89,7 +114,7 @@ def index():
         state_cursor.execute(state_query)
         states = state_cursor.fetchall()
         
-        return render_template("index.html", image_path=image_path, states=states)
+        return render_template("index.html", image_path=image_path, states=states, result_file_url=result_file_url)
 
         
        
@@ -133,7 +158,10 @@ def fetch_pus(ward_id):
     for row in pus:
         pusObj = {
                 'id': row['pu_id'],
-                'name': row['pu_code']}
+                'name': row['pu_code'],
+                'state_name': row['state_name'],
+                'lga_name': row['lga_name'],
+                'ward_name': row['ward_name']}
         pusArray.append(pusObj)
     return jsonify({'pus_json' : pusArray})
 
@@ -159,8 +187,6 @@ def convert_pdf_to_jpg(file_path, PU_Code):
     page = pdf[0]
     pil_image = page.render(scale=2).to_pil()
     pil_image.save(f"static/results/{PU_Code}.jpg")
- 
- 
 
     
     # Return the file path of the image
