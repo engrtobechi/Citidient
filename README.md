@@ -14,9 +14,8 @@ Citidient is built using modern web technologies, including Python Flask for the
 
 # Technology Stack
 
-- Python 3x
+- Python
 - Flask Framework
-- Bootstrap 5
 - MySQL
 
 # Installation
@@ -53,3 +52,11 @@ Citidient is built using modern web technologies, including Python Flask for the
     app.config["MYSQL_PASSWORD"] = ""
     app.config["MYSQL_DB"] = "inecdb"
     ```
+
+9. Save the app.py file and close it.
+
+10. Run the web app using the following command:
+
+    `python app.py`
+
+11. Viola 😎! Open your web browser and go to the following URL: http://127.0.0.1:5000
