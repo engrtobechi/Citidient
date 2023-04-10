@@ -449,7 +449,7 @@ def send_email(email, message):
         'Messages': [
         {
             "From": {
-                "Email": "no-reply@cwat.com.ng",
+                "Email": "no-reply@citidient.org",
             },
             "To": [
                 {
