@@ -1,10 +1,16 @@
 import os
+import re
 import json
+import time
 import random
+import string
+import mailjet_rest
+from functools import wraps
+from passlib.hash import sha256_crypt
 import urllib.request
 import pypdfium2 as pdfium
 from flask_mysqldb import MySQL,MySQLdb
-from flask import Flask, request, json, url_for, render_template, redirect, jsonify
+from flask import Flask, request, json, flash, url_for, render_template, redirect, jsonify, session
 
 app = Flask(__name__)
 app.config["MYSQL_HOST"] = "localhost"
@@ -16,10 +22,35 @@ mysql = MySQL(app)
 
 app.config["SECRET_KEY"] = "add your key here" 
 
+# Create an instance of the Mailjet API
+apikey = "public_key"
+apisecret = "private_key"
+mj = mailjet_rest.Client(
+    auth=(apikey,apisecret), 
+    version='v3.1')
 
-@app.route("/", methods=["GET", "POST"])
+# Define the function to control user roles
+def login_required(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if "logged_in" in session:
+            return f(*args, **kwargs)
+        else:
+            flash("Unauthorized, please login.", "danger")
+            return redirect(url_for("login"))
+        
+    return wrap
+
+@app.route("/")
 def index():
+    return render_template("index.html")
+
+@app.route("/transcribe/", methods=["GET", "POST"])
+@login_required
+def transcribe():
     if request.method == "POST":
+        # Get username
+        username = session["username"]
         # Get data from the form
         state_id = int(request.form["state"])
         lga_id = int(request.form["lga"])
@@ -63,19 +94,19 @@ def index():
 
         # Insert the data into the "transcribed" table
         cursor = mysql.connection.cursor()
-        query = "INSERT INTO transcribed (state, lga, ward, pu_code, registered_voters, accredited_voters, mutilated, is_result_sheet, is_stamped, APC, APC_agent_signed, LP, LP_agent_signed, PDP, PDP_agent_signed, NNPP, NNPP_agent_signed, result_file_url) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        values = (state, lga, ward, pu_code, registered_voters, accredited_voters, mutilated, is_result_sheet, is_stamped, APC, APC_agent_signed, LP, LP_agent_signed, PDP, PDP_agent_signed, NNPP, NNPP_agent_signed, result_file_url)
+        query = "INSERT INTO transcribed (state, lga, ward, pu_code, registered_voters, accredited_voters, mutilated, is_result_sheet, is_stamped, APC, APC_agent_signed, LP, LP_agent_signed, PDP, PDP_agent_signed, NNPP, NNPP_agent_signed, result_file_url, username) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        values = (state, lga, ward, pu_code, registered_voters, accredited_voters, mutilated, is_result_sheet, is_stamped, APC, APC_agent_signed, LP, LP_agent_signed, PDP, PDP_agent_signed, NNPP, NNPP_agent_signed, result_file_url, username)
         cursor.execute(query, values)
         mysql.connection.commit()
         message = "Data saved successfully"
 
-        return redirect(url_for("index"))
+        return redirect(url_for("transcribe"))
         
     else: # GET request
         # Get URL and polling unit code from the "wards" table
         cursor = mysql.connection.cursor()
         ward_id = random.randint(1, 176851)
-        query = f"SELECT result_file_url, pu_code FROM wards WHERE id = {ward_id}" # id is randomly appropriate ward id
+        query = f"SELECT result_file_url, pu_code FROM wards WHERE id = {ward_id} AND result_file_url IS NOT NULL AND pu_code IS NOT NULL" # id is randomly appropriate ward id
         cursor.execute(query)
         row = cursor.fetchone()
         result_file_url = row["result_file_url"]
@@ -100,13 +131,14 @@ def index():
             count = cursor.fetchone()["count"]
         
         # If the URL ends with ".pdf", download and convert to JPEG
-        if result_file_url.endswith(".pdf"):
-            pdf_path = os.path.join("static/cached_pdf", f"{pu_code}.pdf")
-            if not os.path.exists(pdf_path):
-                urllib.request.urlretrieve(result_file_url, pdf_path)
-            image_path = convert_pdf_to_jpg(pdf_path, pu_code)
-        else:
-            image_path = result_file_url
+        if result_file_url is not None:
+            if result_file_url.endswith(".pdf"):
+                pdf_path = os.path.join("static/cached_pdf/", f"{pu_code}.pdf")
+                if not os.path.exists(pdf_path):
+                    urllib.request.urlretrieve(result_file_url, pdf_path)
+                image_path = convert_pdf_to_jpg(pdf_path, pu_code)
+            else:
+                image_path = result_file_url
         
         # Handle getting the states for the form field
         state_cursor = mysql.connection.cursor()
@@ -114,10 +146,16 @@ def index():
         state_cursor.execute(state_query)
         states = state_cursor.fetchall()
         
-        return render_template("index.html", image_path=image_path, states=states, result_file_url=result_file_url)
+        return render_template("transcribe.html", image_path=image_path, states=states, result_file_url=result_file_url)
 
         
-       
+@app.route("/faq/")
+def faq():
+    return render_template("faq.html")
+
+@app.route("/about/")
+def about():
+    return render_template("about.html")
 
 
 #API for List of LGAs
@@ -176,6 +214,7 @@ def convert_pdf_to_jpg(file_path, PU_Code):
     :param PU_Code: str, is the PU_Code of the result in the pdf file to be converted.
     :return: str, path to th converted image file. 
     """
+    print(file_path)    
     # Load a document
     pdf = pdfium.PdfDocument(file_path)
 
@@ -190,9 +229,240 @@ def convert_pdf_to_jpg(file_path, PU_Code):
 
     
     # Return the file path of the image
-    return f"static/results/{PU_Code}.jpg"
+    return f"../static/results/{PU_Code}.jpg"
+
+# Add a new route to the Flask application to handle the user signup form.
+@app.route("/signup/", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        # Handle form submission
+        username = request.form.get("username")
+        raw_password = request.form.get("password")
+        email = request.form.get("email")
+        joined_at = time.time()
+
+        # Validate the data
+        if not username or not raw_password or not email:
+            flash("All fields are required!", "warning")
+        elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash("Please enter a valid email address!", "warning")
+        else:
+            # Hash paswword
+            password = sha256_crypt.hash(raw_password)
+            # Create the user
+            try:
+                conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                conn.execute("INSERT INTO users (username, password, email, joined_at) VALUES (%s, %s, %s, %s)",
+                        (username, password, email, joined_at))
+                mysql.connection.commit()
+                flash("You have successfully registered!", "success")
+                return redirect(url_for("login"))
+            except:
+                flash("The email address is already in use!", "danger")
+            mysql.connection.close()
+    return render_template("signup.html")
 
 
+# Add a new route to the Flask application to handle the user login form.
+@app.route("/login/", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        # Handle form submission
+        username = request.form["username"]
+        password_supplied = str(request.form["password"])
+
+        # Check if the user exists
+        conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        result = conn.execute("SELECT * FROM users WHERE username = %s", [username])
+        user = conn.fetchone()
+
+        if user is not None:
+
+            password = user["password"]
+            app.logger.info(password)
+            app.logger.info(password_supplied)
+            # Validate the data
+            if sha256_crypt.verify(password_supplied, password):
+
+                # Log the user in
+                session["logged_in"] = True
+                session["username"] = username
+
+                flash("You are now logged in.", "success")
+                return redirect(url_for("dashboard"))
+            else:
+                app.logger.info("I got here.")
+                flash("Invalid username or password")
+                return redirect(url_for("login"))
+
+        else:
+            error = "Username does not exist"
+            return render_template("login.html", error=error)
+
+    return render_template("login.html")
+
+# Logout route
+@app.route("/logout/")
+@login_required
+def logout():
+    session.clear()
+    flash("You are now logged out", "success")
+    return redirect(url_for("index"))
+
+# Add a new route to the Flask application to handle the user dashboard page.
+@app.route("/dashboard/")
+@login_required
+def dashboard():
+    # Fetch the user's transcriptions
+    conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    transcriptions = conn.execute("SELECT * FROM transcribed WHERE username=%s", (session["username"],))
+    results = conn.fetchall()
+
+    if transcriptions > 0:
+        return render_template("dashboard.html", results=results)
+        mysql.connection.close()
+    else:
+        msg = "You currently have no transcriptions done on your dashboard"
+        return render_template("dashboard.html", msg=msg)
+
+# Password reset function
+@app.route("/reset_password/", methods=["GET", "POST"])
+def reset_password():
+    if request.method == "POST":
+        # Handle form submission
+        email = request.form.get("email")
+
+        # Check if the user exists
+        conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        result = conn.execute("SELECT * FROM users WHERE email=%s", [email])
+        user = conn.fetchone()
+
+        if user is not None:
+            # Generate a unique link
+            link = generate_unique_link()
+            # Send the link to the user's email
+            status = send_password_reset_email(email, link)
+            if status == "success":
+                flash("A password reset link has been sent to your email address.")
+                time.sleep(3)
+                return redirect(url_for("login"))
+            elif status == "error":
+                time.sleep(3)
+                flash("An error occurred while sending the link to your email address.", "warning")
+        else:
+            error = "The email address does not exist in the system."
+            return render_template("reset_password.html", error=error)
+
+    return render_template("reset_password.html")
+
+# Generate a unique link
+def generate_unique_link():
+    # Generate a random string
+    link = "".join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+    # Check if the link is already used
+    conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    result = conn.execute("SELECT * FROM reset_password WHERE link=%s", [link])
+    found = conn.fetchone()
+    # If the link is already used, generate a new link
+    if found is not None:
+        link = generate_unique_link()
+    # Return the unique link
+    return link
+
+# Send the link to the user's email
+def send_password_reset_email(email, link):
+    # Generate the expiration time
+    expiration_time = time.time() + 1800
+    # Save the link to the database
+    conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    conn.execute("INSERT INTO reset_password (email, link, expiration_time) VALUES (%s, %s, %s)",
+            (email, link, expiration_time))
+    mysql.connection.commit()
+    # Compose the message
+    message = "Please click on the following link to reset your password.\n"
+    message += "http://localhost:5000/reset_password/{}".format(link)
+    # Send the message
+    if send_email(email, message) == 200:
+        return "success"
+    else:
+        return "error"
+
+# Handle the reset password link
+@app.route("/reset_password/<link>/")
+def new_password(link):
+    # Check if the link is valid
+    conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    result = conn.execute("SELECT * FROM reset_password WHERE link=%s AND expiration_time>=%s", (link, time.time()))
+    found = conn.fetchone()
+    mysql.connection.close()
+    # If the link is valid, render the new password page
+    if found is not None:
+        return render_template("newpassword.html", link=link)
+    else:
+        flash("The link is invalid or expired.")
+        return redirect(url_for("login"))
+
+# Handle the new password form
+@app.route("/reset_password/<link>/submit", methods=["POST"])
+def reset_password_submit(link):
+    # Handle form submission
+    new_password = request.form.get("new_password")
+    confirm_new_password = request.form.get("confirm_new_password")
+
+    # Validate the data
+    if not new_password or not confirm_new_password:
+        flash("All fields are required!")
+    elif new_password != confirm_new_password:
+        flash("Passwords do not match!")
+    else:
+        # Hash the new password
+        password = sha256_crypt.hash(new_password)
+        # Get the user's email
+        conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        result = conn.execute("SELECT * FROM reset_password WHERE link=%s", (link))
+        found = conn.fetchone()
+        mysql.connection.close()
+        email = found["email"]
+        # Update the user's password
+        conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        conn.execute("UPDATE users SET password=%s WHERE email=%s", (password, email))
+        mysql.connection.commit()
+        mysql.connection.close()
+        # Delete the reset password entry
+        conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        conn.execute("DELETE FROM reset_password WHERE link=%s", [link])
+        mysql.connection.commit()
+        mysql.connection.close()
+        # Log the user in
+        session["logged_in"] = True
+        session["username"] = username
+
+        flash("Your password has been successfully reset.")
+        return redirect(url_for("dashboard"))
+
+    return render_template("newpassword.html", link=link)
+
+
+# Send email function
+def send_email(email, message):
+    data = {
+        'Messages': [
+        {
+            "From": {
+                "Email": "no-reply@cwat.com.ng",
+            },
+            "To": [
+                {
+                    "Email": email
+                }
+            ],
+            "Subject": "Password Reset",
+            "TextPart": message
+        }
+        ]
+    }
+    result = mj.send.create(data=data)
+    return result.status_code
 
 
 

@@ -859,5 +859,20 @@ CREATE TABLE transcribed (
     PDP_agent_signed BOOLEAN NOT NULL,
     NNPP INT NOT NULL,
     NNPP_agent_signed BOOLEAN NOT NULL,
-    result_file_url TEXT NOT NULL
+    result_file_url TEXT NOT NULL,
+    username TEXT NOT NULL
+);
+
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    username TEXT UNIQUE,
+    password TEXT,
+    email TEXT UNIQUE,
+    joined_at INTEGER
+);
+
+CREATE TABLE reset_password (
+    email VARCHAR(255) NOT NULL,
+    link VARCHAR(32) NOT NULL,
+    expiration_time INTEGER NOT NULL
 );

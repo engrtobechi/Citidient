@@ -1,23 +1,27 @@
-<nav class="navbar navbar-expand-lg bg-body-tertiary shadow-sm sticky-top">
-    <div class="container">
-      <a class="navbar-brand" href="{{ url_for('index') }}">Citidient</a>
-      <!--<form class="d-flex" role="search">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-      </form>-->
-      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-        <div class="navbar-nav me-auto mb-2 mb-lg-0">
-          <!--<a class="nav-link" href="#">About Us</a>
-          <a class="nav-link" href="#">Articles</a>-->
-        </div>
-        <div class="navbar-nav text-end">
-          {% if session.logged_in %}
-            <a class="nav-link" href="#">Dashboard</a>
-            <a class="nav-link" href="#">Logout</a>
-          {% else %}
-            <a type="button" class="btn btn-outline-success me-2" href="#">Login</a>
-            <a type="button" class="btn btn-success" href="#">Sign-up</a>
-          {% endif %}
-        </div>
+<nav class="navbar navbar-expand-md bg-body-tertiary shadow-sm sticky-top">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('index') }}"><img src="../static/img/citidient_logo.svg"></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
+      aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+      <div class="navbar-nav me-auto mb-2 mb-lg-0">
+        <a class="nav-link" href="{{url_for('faq')}}">FAQs</a>
+        <a class="nav-link" href="{{url_for('about')}}">About</a>
+        {% if session.logged_in %}
+        <a class="nav-link" href="{{url_for('transcribe')}}">Transcribe a Result</a>
+        {% endif %}
+      </div>
+      <div class="navbar-nav text-end">
+        {% if session.logged_in %}
+        <a class="nav-link" href="{{url_for('dashboard')}}">Dashboard</a>
+        <a class="nav-link" href="{{url_for('logout')}}">Logout</a>
+        {% else %}
+        <a type="button" class="btn btn-outline-success me-2" href="{{url_for('login')}}">Login</a>
+        <a type="button" class="btn btn-success" href="{{url_for('signup')}}">Sign-up</a>
+        {% endif %}
       </div>
     </div>
-  </nav>
+  </div>
+</nav>

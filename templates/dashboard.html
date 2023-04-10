@@ -1,0 +1,37 @@
+{% extends "base.html "%}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <h3 class="display-5 fw-bold mb-4">Dashboard</h3>
+    <p class="fs-4">Welcome to your dashboard, <strong>{{session.username}}</strong>.</p>
+    <a href="/transcribe/" class="btn btn-success btn-lg" type="button">Transcribe Now</a>
+</div>
+<table class="table table-striped" id="data">
+    <thead>
+        <tr>
+            <th>State</th>
+            <th>LGA</th>
+            <th>Ward</th>
+            <th>PU</th>
+            <th>APC</th>
+            <th>LP</th>
+            <th>PDP</th>
+            <th>NNPP</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in results%}
+        <tr>
+            <td>{{result.state}}</td>
+            <td>{{result.lga}}</td>
+            <td>{{result.ward}}</td>
+            <td>{{result.pu_code}}</td>
+            <td>{{result.APC}}</td>
+            <td>{{result.LP}}</td>
+            <td>{{result.PDP}}</td>
+            <td>{{result.NNPP}}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
