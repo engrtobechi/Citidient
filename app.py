@@ -6,6 +6,7 @@ import random
 import string
 import mailjet_rest
 from functools import wraps
+from datetime import timedelta
 from passlib.hash import sha256_crypt
 import urllib.request
 import pypdfium2 as pdfium
@@ -18,6 +19,7 @@ app.config["MYSQL_USER"] = "root"
 app.config["MYSQL_PASSWORD"] = ""
 app.config["MYSQL_DB"] = "inecdb"
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 mysql = MySQL(app)
 
 app.config["SECRET_KEY"] = "add your key here" 
@@ -333,6 +335,18 @@ def dashboard():
         msg = "You currently have no transcriptions done on your dashboard"
         return render_template("dashboard.html", msg=msg)
 
+
+@app.route('/results/')
+@login_required
+def results():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT SUM(APC), SUM(LP), SUM(PDP), SUM(NNPP) FROM transcribed")
+    results = cur.fetchone()
+    cur.close()
+    print(results)
+    return render_template('results.html', results=results)
+
+
 @app.route("/profile/<username>", methods=["GET", "POST"])
 @login_required
 def profile(username):
@@ -342,25 +356,27 @@ def profile(username):
 
     if request.method == "POST":
         # Get the uploaded image file
-        image = request.files["image"]
-        # Save the file to the /static/users folder with the username as the filename
-        filename = f"{username}.png"
-        image.save(os.path.join("static/users", filename))
-        # Update the user's profile image URL in the database
-        image_url = f"../static/{filename}"
-        cur.execute("UPDATE users SET profile_image = %s WHERE username = %s", [image_url, username])
+        image = request.files.get("image")
+        if image:
+            # Save the file to the /static/users folder with the username as the filename
+            filename = f"{username}.png"
+            image.save(os.path.join("static/users", filename))
+            # Update the user's profile image URL in the database
+            image_url = f"../static/users/{filename}"
+            cur.execute("UPDATE users SET profile_image = %s WHERE username = %s", [image_url, username])
+            session["profile_image"] = image_url
         # Update the user's other profile information in the database
         name = request.form["name"]
+        gender = request.form["gender"]
         phone_number = request.form["phone_number"]
         address = request.form["address"]
-        cur.execute("UPDATE users SET name = %s, phone_number = %s, address = %s WHERE username = %s", [name, phone_number, address, username])
+        cur.execute("UPDATE users SET name = %s, gender = %s, phone_number = %s, address = %s WHERE username = %s", [name, gender, phone_number, address, username])
         mysql.connection.commit()
-        session["profile_image"] = image_url
         return redirect(url_for("profile", username=username))
     
-
     cur.close()
     return render_template("profile.html", user=user)
+
 
 # Password reset function
 @app.route("/reset_password/", methods=["GET", "POST"])

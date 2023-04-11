@@ -867,6 +867,7 @@ CREATE TABLE users (
     id INTEGER PRIMARY KEY,
     profile_image VARCHAR(80),
     name VARCHAR(255),
+    gender VARCHAR(10)
     phone_number VARCHAR(255),
     address VARCHAR(255);
     username TEXT UNIQUE,

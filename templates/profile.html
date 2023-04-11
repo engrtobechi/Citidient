@@ -4,9 +4,9 @@
 <div class="row mt-4">
     <div class="col-lg-4">
         <div class="card shadow-sm">
-            <div class="card-header">
+            <div class="card-header text-center">
                 {% if user.profile_image is not none %}
-                    <img src="{{ session.profile_image }}" alt="" class="profile_img rounded-circle">
+                    <img src="{{ user.profile_image }}" alt="" class="profile_img rounded-circle">
                 {% else %}
                     <img src="https://via.placeholder.com/150" alt="" class="profile_img rounded-circle">
                 {% endif %}
@@ -31,6 +31,15 @@
                         {% endif %}
                     </div>
                     <div class="form-group mb-3">
+                        <label for="gender">Gender</label>
+                        <select class="form-control" name="gender" id="gender">
+                            <option value="">Select Gender</option>
+                            <option value="Male" {% if user.gender == "Male" %} selected {% endif %}>Male</option>
+                            <option value="Female" {% if user.gender == "Female" %} selected {% endif %}>Female</option>
+                        </select>
+                        
+                    </div>
+                    <div class="form-group mb-3">
                         <label for="phone_number">Phone Number:</label>
                         {% if user.phone_number %}
                             <input type="tel" class="form-control" name="phone_number" value="{{ user.phone_number }}" pattern="\+234\d{10}" placeholder="+2341234567890">
@@ -40,7 +49,7 @@
                     </div>
                     <div class="form-group mb-3">
                         <label for="email">Email:</label>
-                        <input type="email" class="form-control" name="email" value="{{ user.email }}">
+                        <input type="email" class="form-control" value="{{ user.email }}" disabled>
                     </div>
                     <div class="form-group mb-3">
                         <label for="address">Address:</label>

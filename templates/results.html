@@ -1,0 +1,52 @@
+{% extends "base.html "%}
+
+{% block body %}
+    <div class="container mt-4">
+        <div class="card results-card m-auto">
+            <div class="card-header text-center">
+                <h4>Results Summary</h4>
+                <p>Note that this is not a declarative result.</p>
+            </div>
+            <div class="card-body">
+                <canvas id="myChart"></canvas>
+            </div>
+            <div class="card-footer text-muted text-center">
+                <!--Load time and date-->
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        var ctx = document.getElementById('myChart').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['APC', 'LP', 'PDP', 'NNPP'],
+                datasets: [{
+                    label: 'Votes',
+                    data: [{{ results['SUM(APC)'] }}, {{ results['SUM(LP)'] }}, {{ results['SUM(PDP)'] }}, {{ results['SUM(NNPP)'] }}],
+                    backgroundColor: ['#5bc2e5', '#008325', '#0394e3', '#ec3237'],
+                    borderColor: ['#5bc2e5', '#008325', '#0394e3', '#ec3237'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+    <script>
+                // Get the current date and time
+        var now = new Date();
+        var date = now.toLocaleDateString();
+        var time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        // Replace the text in the HTML
+        var footer = document.querySelector(".card-footer");
+        footer.innerHTML = time + ", " + date;
+    </script>
+{% endblock %}
