@@ -865,6 +865,10 @@ CREATE TABLE transcribed (
 
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
+    profile_image VARCHAR(80),
+    name VARCHAR(255),
+    phone_number VARCHAR(255),
+    address VARCHAR(255);
     username TEXT UNIQUE,
     password TEXT,
     email TEXT UNIQUE,

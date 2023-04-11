@@ -1,0 +1,64 @@
+{% extends "base.html "%}
+
+{% block body %}
+<div class="row mt-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                {% if user.profile_image is not none %}
+                    <img src="{{ session.profile_image }}" alt="" class="profile_img rounded-circle">
+                {% else %}
+                    <img src="https://via.placeholder.com/150" alt="" class="profile_img rounded-circle">
+                {% endif %}
+                <p><strong>Username: </strong>{{ user.username }}</p>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h4>Bio</h4>
+            </div>
+            <div class="card-body pt-0">
+                <form action="{{ url_for('profile', username=session.username) }}" method="POST" enctype="multipart/form-data">
+                    <div class="form-group mb-3">
+                        <label for="name">Full Name:</label>
+                        {% if user.name %}
+                            <input type="text" class="form-control" name="name" value="{{ user.name }}">
+                        {% else %}
+                        <input type="text" class="form-control" name="name" placeholder="John Doe">
+                        {% endif %}
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="phone_number">Phone Number:</label>
+                        {% if user.phone_number %}
+                            <input type="tel" class="form-control" name="phone_number" value="{{ user.phone_number }}" pattern="\+234\d{10}" placeholder="+2341234567890">
+                        {% else %}
+                            <input type="tel" class="form-control" name="phone_number" pattern="\+234\d{10}" placeholder="+2341234567890">
+                        {% endif %}
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="email">Email:</label>
+                        <input type="email" class="form-control" name="email" value="{{ user.email }}">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="address">Address:</label>
+                        {% if user.address %}
+                            <input type="text" class="form-control" name="address" value="{{ user.address }}">
+                        {% else %}
+                            <input type="text" class="form-control" name="address" placeholder="Enter full address">
+                        {% endif %}
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="image">Profile Image:</label>
+                        <input type="file" class="form-control-file" name="image">
+                    </div>
+                    <button type="submit" class="btn btn-success">Save</button>
+                </form>                
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

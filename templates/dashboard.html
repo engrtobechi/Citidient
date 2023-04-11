@@ -3,7 +3,7 @@
 {% block body %}
 <div class="container-fluid py-4">
     <h3 class="display-5 fw-bold mb-4">Dashboard</h3>
-    <p class="fs-4">Welcome to your dashboard, <strong>{{session.username}}</strong>.</p>
+    <p class="fs-4">Welcome to your dashboard, {% if session.name %}<strong>{{session.name}}</strong>{% else %}<strong>{{session.username}}</strong>{% endif %}.</p>
     <a href="/transcribe/" class="btn btn-success btn-lg" type="button">Transcribe Now</a>
 </div>
 <table class="table table-striped" id="data">

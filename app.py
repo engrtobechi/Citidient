@@ -106,30 +106,32 @@ def transcribe():
         # Get URL and polling unit code from the "wards" table
         cursor = mysql.connection.cursor()
         ward_id = random.randint(1, 176851)
-        query = f"SELECT result_file_url, pu_code FROM wards WHERE id = {ward_id} AND result_file_url IS NOT NULL AND pu_code IS NOT NULL" # id is randomly appropriate ward id
-        cursor.execute(query)
-        row = cursor.fetchone()
-        result_file_url = row["result_file_url"]
-        pu_code = row["pu_code"]
-        
-        # Check if the URL and pu_code already exist in the "transcribed" table
-        query = "SELECT COUNT(*) as count FROM transcribed WHERE result_file_url = %s AND pu_code = %s"
-        values = (result_file_url, pu_code)
-        cursor.execute(query, values)
-        count = cursor.fetchone()["count"]
-        
-        while count > 0:
-            # If the URL and pu_code exist in the "transcribed" table, get another URL and pu_code from the "wards" table
+
+        result_file_url = None
+        pu_code = None
+        while result_file_url is None or pu_code is None:
+            query = f"SELECT result_file_url, pu_code FROM wards WHERE id = {ward_id} AND result_file_url IS NOT NULL AND pu_code IS NOT NULL" # id is randomly appropriate ward id
+            cursor.execute(query)
             row = cursor.fetchone()
-            result_file_url = row["result_file_url"]
-            pu_code = row["pu_code"]
-            
-            # Check if the new URL and pu_code exist in the "transcribed" table
-            query = "SELECT COUNT(*) as count FROM transcribed WHERE result_file_url = %s AND pu_code = %s"
-            values = (result_file_url, pu_code)
-            cursor.execute(query, values)
-            count = cursor.fetchone()["count"]
-        
+
+            if row is not None:
+                result_file_url = row["result_file_url"]
+                pu_code = row["pu_code"]
+                
+                # Check if the URL and pu_code already exist in the "transcribed" table
+                query = "SELECT COUNT(*) as count FROM transcribed WHERE result_file_url = %s AND pu_code = %s"
+                values = (result_file_url, pu_code)
+                cursor.execute(query, values)
+                count = cursor.fetchone()["count"]
+                
+                if count > 0:
+                    result_file_url = None
+                    pu_code = None
+                    
+            # Generate a new random ward_id if the query returned no results or if the URL and pu_code already exist in the "transcribed" table
+            if result_file_url is None or pu_code is None:
+                ward_id = random.randint(1, 176851)
+
         # If the URL ends with ".pdf", download and convert to JPEG
         if result_file_url is not None:
             if result_file_url.endswith(".pdf"):
@@ -139,14 +141,15 @@ def transcribe():
                 image_path = convert_pdf_to_jpg(pdf_path, pu_code)
             else:
                 image_path = result_file_url
-        
+
         # Handle getting the states for the form field
         state_cursor = mysql.connection.cursor()
         state_query = "SELECT * FROM states"
         state_cursor.execute(state_query)
         states = state_cursor.fetchall()
-        
+
         return render_template("transcribe.html", image_path=image_path, states=states, result_file_url=result_file_url)
+
 
         
 @app.route("/faq/")
@@ -288,6 +291,11 @@ def login():
                 session["logged_in"] = True
                 session["username"] = username
 
+                if user["name"] != None:
+                    session["name"] = user["name"]
+                else:
+                    session["name"] = ""
+
                 flash("You are now logged in.", "success")
                 return redirect(url_for("dashboard"))
             else:
@@ -324,6 +332,35 @@ def dashboard():
     else:
         msg = "You currently have no transcriptions done on your dashboard"
         return render_template("dashboard.html", msg=msg)
+
+@app.route("/profile/<username>", methods=["GET", "POST"])
+@login_required
+def profile(username):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM users WHERE username = %s", [username])
+    user = cur.fetchone()
+
+    if request.method == "POST":
+        # Get the uploaded image file
+        image = request.files["image"]
+        # Save the file to the /static/users folder with the username as the filename
+        filename = f"{username}.png"
+        image.save(os.path.join("static/users", filename))
+        # Update the user's profile image URL in the database
+        image_url = f"../static/{filename}"
+        cur.execute("UPDATE users SET profile_image = %s WHERE username = %s", [image_url, username])
+        # Update the user's other profile information in the database
+        name = request.form["name"]
+        phone_number = request.form["phone_number"]
+        address = request.form["address"]
+        cur.execute("UPDATE users SET name = %s, phone_number = %s, address = %s WHERE username = %s", [name, phone_number, address, username])
+        mysql.connection.commit()
+        session["profile_image"] = image_url
+        return redirect(url_for("profile", username=username))
+    
+
+    cur.close()
+    return render_template("profile.html", user=user)
 
 # Password reset function
 @app.route("/reset_password/", methods=["GET", "POST"])

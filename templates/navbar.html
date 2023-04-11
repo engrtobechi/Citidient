@@ -10,17 +10,32 @@
         <a class="nav-link" href="{{url_for('faq')}}">FAQs</a>
         <a class="nav-link" href="{{url_for('about')}}">About</a>
         {% if session.logged_in %}
-        <a class="nav-link" href="{{url_for('transcribe')}}">Transcribe a Result</a>
+        <div class="dropdown">
+          <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Results
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{{url_for('transcribe')}}">Transcribe</a></li>
+            <li><a class="dropdown-item" href="#">View Results</a></li>
+          </ul>
+        </div>
         {% endif %}
       </div>
-      <div class="navbar-nav text-end">
-        {% if session.logged_in %}
-        <a class="nav-link" href="{{url_for('dashboard')}}">Dashboard</a>
-        <a class="nav-link" href="{{url_for('logout')}}">Logout</a>
-        {% else %}
-        <a type="button" class="btn btn-outline-success me-2" href="{{url_for('login')}}">Login</a>
-        <a type="button" class="btn btn-success" href="{{url_for('signup')}}">Sign-up</a>
-        {% endif %}
+      <div class="dropdown">
+        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <img src="../static/img/user_icon.svg">
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% if session.logged_in %}
+            <li><a class="dropdown-item" href="{{url_for('dashboard')}}">Dashboard</a></li>
+            <li><a class="dropdown-item" href="/profile/{{session.username}}">Profile</a></li>
+            <div class="dropdown-divider"></div>
+            <li><a class="dropdown-item" href="{{url_for('logout')}}">Logout</a></li>
+          {% else %}
+            <li><a type="button" class="dropdown-item" href="{{url_for('login')}}">Login</a></li>
+            <li><a type="button" class="dropdown-item" href="{{url_for('signup')}}">Sign-up</a></li>
+          {% endif %}
+        </ul>
       </div>
     </div>
   </div>
