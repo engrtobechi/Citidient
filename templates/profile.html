@@ -6,12 +6,12 @@
         <div class="card shadow-sm">
             <div class="card-header text-center">
                 {% if user.profile_image is not none %}
-                    <img src="{{ user.profile_image }}" alt="" class="profile_img rounded-circle">
+                    <img src="{{ user.profile_image }}" alt="" class="profile_img rounded-circle my-2">
                 {% else %}
-                    <img src="https://via.placeholder.com/150" alt="" class="profile_img rounded-circle">
+                    <img src="https://via.placeholder.com/150" alt="" class="profile_img rounded-circle my-2">
                 {% endif %}
-                <p><strong>Username: </strong>{{ user.username }}</p>
-                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p class="mt-2"><strong>Username: </strong>{{ user.username }}</p>
+                <p class="mt-2"><strong>Email:</strong> {{ user.email }}</p>
             </div>
         </div>
     </div>

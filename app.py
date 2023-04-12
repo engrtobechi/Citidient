@@ -4,6 +4,7 @@ import json
 import time
 import random
 import string
+import imghdr
 import mailjet_rest
 from functools import wraps
 from datetime import timedelta
@@ -19,14 +20,15 @@ app.config["MYSQL_USER"] = "root"
 app.config["MYSQL_PASSWORD"] = ""
 app.config["MYSQL_DB"] = "inecdb"
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 mysql = MySQL(app)
 
 app.config["SECRET_KEY"] = "add your key here" 
 
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
+
 # Create an instance of the Mailjet API
-apikey = "public_key"
-apisecret = "private_key"
+apikey = "#Consider using ENV to hold you keys"
+apisecret = "Secret key goes here"
 mj = mailjet_rest.Client(
     auth=(apikey,apisecret), 
     version='v3.1')
@@ -42,6 +44,19 @@ def login_required(f):
             return redirect(url_for("login"))
         
     return wrap
+
+# Function to check allowed image file extentions
+def allowed_file(filename):
+    # Check if there is a dot in the filename and that it's not at the beginning
+    if '.' in filename and filename.index('.') != 0:
+        # Split the filename into two parts: the part before the last dot and the part after it
+        parts = filename.rsplit('.', 1)
+        # Check if the second part (the file extension) is in the list of allowed extensions
+        if parts[1].lower() in ALLOWED_EXTENSIONS:
+            # Return True if the file extension is allowed
+            return True
+    # If any of the above conditions are not met, return False
+    return False
 
 @app.route("/")
 def index():
@@ -218,8 +233,7 @@ def convert_pdf_to_jpg(file_path, PU_Code):
     :param file_path: str, is the complete path to the pdf file.
     :param PU_Code: str, is the PU_Code of the result in the pdf file to be converted.
     :return: str, path to th converted image file. 
-    """
-    print(file_path)    
+    """   
     # Load a document
     pdf = pdfium.PdfDocument(file_path)
 
@@ -252,19 +266,29 @@ def signup():
         elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             flash("Please enter a valid email address!", "warning")
         else:
-            # Hash paswword
+            # Hash password
             password = sha256_crypt.hash(raw_password)
-            # Create the user
-            try:
-                conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-                conn.execute("INSERT INTO users (username, password, email, joined_at) VALUES (%s, %s, %s, %s)",
-                        (username, password, email, joined_at))
-                mysql.connection.commit()
-                flash("You have successfully registered!", "success")
-                return redirect(url_for("login"))
-            except:
-                flash("The email address is already in use!", "danger")
-            mysql.connection.close()
+            # Check if username and email is already in use
+            cursor = mysql.connection.cursor()
+            cursor.execute("SELECT * FROM users WHERE username = %s OR email = %s", (username, email))
+            user = cursor.fetchone()
+            if user:
+                if user["email"] == email:
+                    flash("The email is already in use!", "danger")
+                elif user["username"] == username:
+                    flash("The username is already in use!", "danger")
+            else:
+                # Create the user
+                try:
+                    conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                    conn.execute("INSERT INTO users (username, password, email, joined_at) VALUES (%s, %s, %s, %s)",
+                            (username, password, email, joined_at))
+                    mysql.connection.commit()
+                    flash("You have successfully registered!", "success")
+                    return redirect(url_for("login"))
+                except:
+                    flash("An error occurred while registering. Please try again later.", "danger")
+                mysql.connection.close()
     return render_template("signup.html")
 
 
@@ -275,6 +299,7 @@ def login():
         # Handle form submission
         username = request.form["username"]
         password_supplied = str(request.form["password"])
+        remember = request.form.get("remember-me") == "on"
 
         # Check if the user exists
         conn = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -282,18 +307,21 @@ def login():
         user = conn.fetchone()
 
         if user is not None:
-
             password = user["password"]
-            app.logger.info(password)
-            app.logger.info(password_supplied)
+
             # Validate the data
             if sha256_crypt.verify(password_supplied, password):
-
                 # Log the user in
+                session.permanent = remember
+                if remember:
+                    app.permanent_session_lifetime = timedelta(days=1)
+                else:
+                    app.permanent_session_lifetime = timedelta(minutes=30)
+
                 session["logged_in"] = True
                 session["username"] = username
 
-                if user["name"] != None:
+                if user["name"] is not None:
                     session["name"] = user["name"]
                 else:
                     session["name"] = ""
@@ -301,10 +329,8 @@ def login():
                 flash("You are now logged in.", "success")
                 return redirect(url_for("dashboard"))
             else:
-                app.logger.info("I got here.")
                 flash("Invalid username or password")
                 return redirect(url_for("login"))
-
         else:
             error = "Username does not exist"
             return render_template("login.html", error=error)
@@ -343,7 +369,6 @@ def results():
     cur.execute("SELECT SUM(APC), SUM(LP), SUM(PDP), SUM(NNPP) FROM transcribed")
     results = cur.fetchone()
     cur.close()
-    print(results)
     return render_template('results.html', results=results)
 
 
@@ -357,7 +382,7 @@ def profile(username):
     if request.method == "POST":
         # Get the uploaded image file
         image = request.files.get("image")
-        if image:
+        if image and allowed_file(image.filename) and imghdr.what(image) in {'jpeg', 'png', 'gif'}:
             # Save the file to the /static/users folder with the username as the filename
             filename = f"{username}.png"
             image.save(os.path.join("static/users", filename))
@@ -365,6 +390,8 @@ def profile(username):
             image_url = f"../static/users/{filename}"
             cur.execute("UPDATE users SET profile_image = %s WHERE username = %s", [image_url, username])
             session["profile_image"] = image_url
+        else:
+            flash("You can only upload images in JPEG and PNG formats.", "danger")
         # Update the user's other profile information in the database
         name = request.form["name"]
         gender = request.form["gender"]
@@ -435,7 +462,8 @@ def send_password_reset_email(email, link):
     message = "Please click on the following link to reset your password.\n"
     message += "http://localhost:5000/reset_password/{}".format(link)
     # Send the message
-    if send_email(email, message) == 200:
+    error_code = send_email(email, message)
+    if error_code == 200:
         return "success"
     else:
         return "error"
@@ -515,8 +543,9 @@ def send_email(email, message):
         ]
     }
     result = mj.send.create(data=data)
+    print(result.status_code)
+    print(result.json())
     return result.status_code
-
 
 
 
